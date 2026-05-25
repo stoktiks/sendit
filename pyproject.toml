@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sendit"
+version = "0.1.0"
+description = "Simple P2P file transfer — zero deps, works everywhere"
+authors = [{name = "stoktiks"}]
+license = {text = "MIT"}
+readme = "README.md"
+requires-python = ">=3.6"
+
+[project.scripts]
+sendit = "sendit.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["sendit*"]
