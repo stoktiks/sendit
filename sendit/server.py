@@ -85,15 +85,26 @@ body {{
 }}
 .icon {{ font-size: 48px; margin-bottom: 16px; }}
 h1 {{ font-size: 24px; margin-bottom: 8px; }}
-.filename {{ color: #888; font-size: 16px; margin-bottom: 24px; word-break: break-all; }}
+.filename {{ color: #888; font-size: 16px; margin-bottom: 4px; word-break: break-all; }}
 .size {{ color: #666; font-size: 14px; margin-bottom: 32px; }}
-a.button {{
+.btn-wrap {{ position: relative; }}
+a.button, .btn-wrap a {{
   display: inline-block; background: #4361ee; color: #fff;
   padding: 14px 48px; border-radius: 10px; text-decoration: none;
-  font-size: 16px; font-weight: 600;
-  transition: background 0.2s;
+  font-size: 16px; font-weight: 600; cursor: pointer;
+  transition: background 0.2s; border: none;
 }}
 a.button:hover {{ background: #3a56d4; }}
+a.button:disabled {{ background: #555; cursor: not-allowed; }}
+#progress-wrap {{ display: none; margin-top: 24px; }}
+#progress-bar-bg {{
+  width: 100%; height: 8px; background: #333; border-radius: 4px; overflow: hidden;
+}}
+#progress-bar {{
+  height: 100%; width: 0%; background: linear-gradient(90deg, #4361ee, #7c4dff);
+  border-radius: 4px; transition: width 0.2s;
+}}
+#progress-text {{ margin-top: 8px; font-size: 13px; color: #666; }}
 .footer {{ margin-top: 24px; color: #555; font-size: 12px; }}
 </style>
 </head>
@@ -103,9 +114,65 @@ a.button:hover {{ background: #3a56d4; }}
   <h1>Incoming File</h1>
   <div class="filename">{_escape_html(file_name)}</div>
   <div class="size">{_format_size(file_size)}</div>
-  <a class="button" href="/{token}/download">Download</a>
+  <a class="button" id="dlbtn" href="/{token}/download" onclick="return startDownload(event)">Download</a>
+  <div id="progress-wrap">
+    <div id="progress-bar-bg"><div id="progress-bar"></div></div>
+    <div id="progress-text">Starting...</div>
+  </div>
   <div class="footer">sendit · simple file transfer</div>
 </div>
+<script>
+async function startDownload(e) {{
+  e.preventDefault();
+  const btn = document.getElementById('dlbtn');
+  const wrap = document.getElementById('progress-wrap');
+  const bar = document.getElementById('progress-bar');
+  const txt = document.getElementById('progress-text');
+  btn.style.display = 'none';
+  wrap.style.display = 'block';
+  try {{
+    const resp = await fetch('/{token}/download');
+    const total = parseInt(resp.headers.get('content-length') || '0');
+    const reader = resp.body.getReader();
+    let loaded = 0;
+    const chunks = [];
+    while (true) {{
+      const {{done, value}} = await reader.read();
+      if (done) break;
+      chunks.push(value);
+      loaded += value.length;
+      if (total > 0) {{
+        const pct = Math.round(loaded / total * 100);
+        bar.style.width = pct + '%';
+        txt.textContent = pct + '% — ' + formatSize(loaded) + ' / ' + formatSize(total);
+      }} else {{
+        txt.textContent = formatSize(loaded) + ' downloaded';
+      }}
+    }}
+    txt.textContent = '100% — ' + formatSize(loaded);
+    bar.style.width = '100%';
+    // Create blob and trigger save
+    const blob = new Blob(chunks, {{type: resp.headers.get('content-type') || 'application/octet-stream'}});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = '{_escape_html(file_name)}';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(a.href);
+    txt.textContent = '✅ Done!';
+  }} catch(err) {{
+    txt.textContent = '❌ Error: ' + err.message;
+    bar.style.width = '0%';
+  }}
+}}
+function formatSize(n) {{
+  const units = ['B', 'KB', 'MB', 'GB'];
+  let i = 0;
+  while (n >= 1024 && i < units.length - 1) {{ n /= 1024; i++; }}
+  return n.toFixed(i > 0 ? 1 : 0) + ' ' + units[i];
+}}
+</script>
 </body>
 </html>"""
             body = html.encode()

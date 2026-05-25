@@ -4,6 +4,8 @@ import sys
 import urllib.error
 import urllib.request
 
+from .progress import Progress
+
 
 def _format_size(n):
     for unit in ("B", "KB", "MB", "GB"):
@@ -78,6 +80,7 @@ def run_client(url, output=None):
         req = urllib.request.Request(download_url)
         resp = urllib.request.urlopen(req, timeout=300)
         total = 0
+        prog = Progress(file_size) if file_size else None
         with open(file_name, "wb") as f:
             while True:
                 chunk = resp.read(65536)
@@ -85,13 +88,10 @@ def run_client(url, output=None):
                     break
                 f.write(chunk)
                 total += len(chunk)
-                if file_size:
-                    pct = total * 100 // file_size
-                    bar = "█" * (pct // 5) + "░" * (20 - pct // 5)
-                    print(f"\r  {bar} {pct}%", end="", flush=True)
-                else:
-                    print(f"\r  Downloaded {_format_size(total)}", end="", flush=True)
-        print()
+                if prog:
+                    prog.update(total)
+        if prog:
+            prog.done()
         print(f"✅ Saved to ./{file_name}")
     except urllib.error.HTTPError as e:
         print(f"\n❌ Server returned {e.code}: {e.reason}")
