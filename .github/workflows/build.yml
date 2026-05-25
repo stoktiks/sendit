@@ -125,14 +125,15 @@ jobs:
         working-directory: sendit-android
       - name: Sign APK
         run: |
-          # Generate a debug keystore for now (CI build, not for production)
           keytool -genkey -v -keystore debug.keystore \
             -alias sendit -keyalg RSA -keysize 2048 -validity 10000 \
             -storepass android -keypass android -dname "CN=sendit, OU=sendit, O=sendit, L=Unknown, ST=Unknown, C=US"
           jarsigner -verbose -sigalg SHA1withRSA -digestalg SHA1 \
             -keystore debug.keystore -storepass android \
             app/build/outputs/apk/release/app-release-unsigned.apk sendit
-          $ANDROID_HOME/build-tools/*/zipalign -v 4 \
+          # Find zipalign (version varies per runner image)
+          ZIPALIGN=$(ls "$ANDROID_HOME"/build-tools/*/zipalign 2>/dev/null | head -1)
+          "$ZIPALIGN" -v -p 4 \
             app/build/outputs/apk/release/app-release-unsigned.apk \
             sendit-android.apk
         working-directory: sendit-android

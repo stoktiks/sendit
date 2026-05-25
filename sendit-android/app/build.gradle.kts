@@ -41,7 +41,8 @@ android {
 dependencies {
     implementation("androidx.core:core-ktx:1.12.0")
     implementation("androidx.appcompat:appcompat:1.6.1")
+    implementation("androidx.constraintlayout:constraintlayout:2.1.4")
     implementation("androidx.webkit:webkit:1.9.0")
-    implementation("com.google.zxing:core:3.5.2")      // QR code generation
+    implementation("com.google.zxing:core:3.5.2")
     implementation("com.journeyapps:zxing-android-embedded:4.3.0")
 }
