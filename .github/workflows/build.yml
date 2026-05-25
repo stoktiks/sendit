@@ -15,14 +15,11 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            label: linux-x86_64
-            binary: sendit-linux-x86_64
+            label: linux
           - os: macos-latest
             label: darwin
-            binary: sendit-darwin
           - os: windows-latest
-            label: windows-x86_64
-            binary: sendit-windows-x86_64.exe
+            label: windows
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -39,13 +36,15 @@ jobs:
             aarch64|arm64) suffix="arm64" ;;
             *) suffix="$arch" ;;
           esac
-          pyinstaller --onefile --name "${{ matrix.binary }}-$suffix" run.py
+          ext=""
+          [ "${{ matrix.label }}" = "windows" ] && ext=".exe"
+          pyinstaller --onefile --name "sendit-${{ matrix.label }}-$suffix$ext" run.py
         shell: bash
       - run: ls -la dist/
         shell: bash
       - uses: softprops/action-gh-release@v2
         with:
-          files: dist/${{ matrix.binary }}*
+          files: dist/sendit-*
           fail_on_unmatched_files: true
 
   build-arm64:
