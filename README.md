@@ -68,23 +68,18 @@ Shows progress with speed & ETA:
 
 ```bash
 # Sender: visual mode — drag & drop in browser
-sendit web
+sendit web                     # random port
+sendit web 8080                # specific port
 
 # Sender: CLI mode
 sendit send ./photo.jpg
-
-# Sender: specific port
 sendit send ./video.mp4 --port 8080
-
-# Sender: longer timeout (default 5 min)
 sendit send ./huge.zip --timeout 600
 
 # Receiver: browser — just scan QR or open link
 
 # Receiver: CLI download
 sendit get http://192.168.1.5:9876/a3b2c1
-
-# Receiver: custom filename
 sendit get http://192.168.1.5:9876/a3b2c1 -o myfile.zip
 ```
 

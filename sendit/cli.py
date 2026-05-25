@@ -22,7 +22,7 @@ def main():
 
     # web
     web_p = sub.add_parser("web", help="Start a visual web UI for sending files")
-    web_p.add_argument("--port", type=int, default=0,
+    web_p.add_argument("port", nargs="?", type=int, default=0,
                        help="Port to listen on (default: random available)")
 
     # get
