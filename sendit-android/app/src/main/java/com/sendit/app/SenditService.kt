@@ -33,7 +33,7 @@ class SenditService : Service() {
             ACTION_START -> startServer()
             ACTION_STOP -> stopServer()
         }
-        return START_STICKY
+        return START_NOT_STICKY
     }
 
     private fun startServer() {

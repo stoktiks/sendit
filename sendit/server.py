@@ -258,10 +258,9 @@ function formatSize(n) {{
                 self.send_header("Content-Type", guessed or "application/octet-stream")
                 self.send_header("Content-Length", str(fsize))
                 safe_name = header_safe_filename(file_name)
+                safe_quoted = urllib.parse.quote(file_name, safe="")
                 self.send_header("Content-Disposition",
-                                 f'attachment; filename="{safe_name}"')
-                self.send_header("Content-Disposition",
-                                 f"attachment; filename*=UTF-8''{urllib.parse.quote(file_name)}")
+                                 f'attachment; filename="{safe_name}"; filename*=UTF-8\x27\x27{safe_quoted}')
                 self.end_headers()
                 with open(file_path, "rb") as f:
                     while True:

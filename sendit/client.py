@@ -2,6 +2,7 @@ import os
 import re
 import sys
 import urllib.error
+import urllib.parse
 import urllib.request
 
 from .progress import Progress
@@ -50,11 +51,17 @@ def run_client(url, output=None):
         file_size = int(content_length) if content_length else 0
 
         # Extract filename from Content-Disposition
+        # Prefer filename* (RFC 5987 UTF-8), fall back to filename=
         file_name = None
         if content_disposition:
-            m = re.search(r'filename="?([^";\n]+)"?', content_disposition)
+            # Try filename*=UTF-8''<encoded>
+            m = re.search(r"filename\*=UTF-8''([^;]+)", content_disposition, re.I)
             if m:
-                file_name = m.group(1)
+                file_name = urllib.parse.unquote(m.group(1))
+            else:
+                m = re.search(r'filename="?([^";\n]+)"?', content_disposition)
+                if m:
+                    file_name = m.group(1)
     except urllib.error.HTTPError as e:
         print(f"❌ Server returned {e.code}: {e.reason}")
         sys.exit(1)

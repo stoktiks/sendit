@@ -278,6 +278,99 @@ def run_web_server(port=0, storage_dir=None):
             self.end_headers()
             self.wfile.write(body)
 
+        def _process_upload_stream(self, boundary):
+            """Stream multipart upload to a temp file — O(1) memory for the file body.
+            Returns (filename, temp_path) or (None, None) on failure.
+            """
+            boundary_bytes = f"--{boundary}".encode()
+            delim = b"\r\n" + boundary_bytes
+
+            buf = bytearray()
+            filename = None
+            temp = None
+            temp_path = None
+            state = "header"
+
+            while state != "done":
+                chunk = self.rfile.read(65536)
+                if chunk:
+                    buf.extend(chunk)
+
+                if state == "header":
+                    # Find \r\n\r\n — headers are always small, safe to buffer
+                    idx = buf.find(b"\r\n\r\n")
+                    if idx == -1:
+                        if len(buf) > 65536:
+                            return None, None  # pathological header, bail
+                        if not chunk:
+                            return None, None  # connection closed prematurely
+                        continue
+
+                    # Parse headers for filename
+                    header_block = buf[:idx].decode("utf-8", errors="replace")
+                    for line in header_block.split("\r\n"):
+                        if 'name="file"' in line and "filename=" in line:
+                            fn_start = line.find('filename="')
+                            if fn_start != -1:
+                                fn_end = line.find('"', fn_start + 10)
+                                if fn_end != -1:
+                                    filename = line[fn_start + 10:fn_end]
+                            break
+
+                    if not filename:
+                        return None, None
+
+                    safe_name = os.path.basename(filename)
+                    temp = tempfile.NamedTemporaryFile(
+                        prefix=f"sendit_", suffix=f"_{safe_name}",
+                        dir=storage_dir, delete=False
+                    )
+                    temp_path = temp.name
+
+                    # Body starts after \r\n\r\n (idx + 4)
+                    buf = buf[idx + 4:]
+                    state = "body"
+
+                if state == "body":
+                    # How many trailing bytes could be part of the boundary marker?
+                    # Longest: \r\n--<boundary>--  (boundary up to ~70 chars)
+                    max_trail = len(delim) + 2
+
+                    # Look for the closing boundary
+                    for end_marker in (delim + b"--", delim):
+                        eidx = buf.find(end_marker)
+                        if eidx != -1:
+                            temp.write(buf[:eidx])
+                            temp.close()
+                            state = "done"
+                            break
+
+                    if state == "done":
+                        break
+
+                    # No boundary found yet — write everything except trailing bytes
+                    if len(buf) > max_trail:
+                        safe = len(buf) - max_trail
+                        temp.write(bytearray(buf[:safe]))
+                        buf = buf[safe:]
+
+                    if not chunk:
+                        # Stream exhausted without finding closing boundary
+                        # Write remaining buffer and close
+                        temp.write(buf)
+                        temp.close()
+                        state = "done"
+                        break
+
+            if filename and temp_path:
+                return filename, temp_path
+            if temp_path:
+                try:
+                    os.unlink(temp_path)
+                except Exception:
+                    pass
+            return None, None
+
         def _read_post_data(self):
             length = int(self.headers.get("Content-Length", 0))
             return self.rfile.read(length)
@@ -427,8 +520,18 @@ function formatSize(n){{if(n===0)return'0 B';const units=['B','KB','MB','GB'];le
             self._send_html(200, html_page)
 
         def do_HEAD(self):
-            token = self.path.strip("/").split("/")[0]
-            path_rest = self.path.strip("/")[len(token):]
+            parsed_path = self.path.strip("/")
+            if parsed_path == "":
+                # Root path — confirm the page exists
+                self.send_response(200)
+                self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.send_header("Content-Length", str(len(UPLOAD_PAGE.encode())))
+                self.end_headers()
+                return
+
+            parts = parsed_path.split("/")
+            token = parts[0]
+            path_rest = "/" + "/".join(parts[1:]) if len(parts) > 1 else ""
             is_download = "/download" in path_rest
 
             if token in files and is_download:
@@ -440,8 +543,9 @@ function formatSize(n){{if(n===0)return'0 B';const units=['B','KB','MB','GB'];le
                     self.send_header("Content-Type", self._guess_content_type(info["name"]))
                     self.send_header("Content-Length", str(fsize))
                     safe_name = header_safe_filename(info["name"])
+                    safe_quoted = urllib.parse.quote(info["name"], safe='')
                     self.send_header("Content-Disposition",
-                                     f'attachment; filename="{safe_name}"')
+                                     f'attachment; filename="{safe_name}"; filename*=UTF-8\x27\x27{safe_quoted}')
                     self.end_headers()
                 except Exception:
                     self._send_json(404, {"error": "file not found"})
@@ -461,8 +565,9 @@ function formatSize(n){{if(n===0)return'0 B';const units=['B','KB','MB','GB'];le
                 self.send_header("Content-Type", self._guess_content_type(fname))
                 self.send_header("Content-Length", str(fsize))
                 safe_name = header_safe_filename(fname)
+                safe_quoted = urllib.parse.quote(fname, safe='')
                 self.send_header("Content-Disposition",
-                                 f'attachment; filename="{safe_name}"')
+                                 f'attachment; filename="{safe_name}"; filename*=UTF-8\x27\x27{safe_quoted}')
                 self.end_headers()
                 with open(fpath, "rb") as f:
                     while True:
@@ -500,23 +605,24 @@ function formatSize(n){{if(n===0)return'0 B';const units=['B','KB','MB','GB'];le
                     self._send_json(400, {"error": "missing boundary"})
                     return
                 boundary = ctype.split("boundary=")[1].split(";")[0].strip()
-                post_data = self._read_post_data()
-                filename, body = self._process_upload(post_data, boundary)
-                if not filename or not body:
+                filename, temp_path = self._process_upload_stream(boundary)
+                if not filename or not temp_path:
                     self._send_json(400, {"error": "no file received"})
                     return
 
-                # Save file
+                # Get file size from temp file
+                fsize = os.path.getsize(temp_path)
+
                 safe_name = os.path.basename(filename)
                 token = secrets.token_urlsafe(8)
+                # Move temp file to final location
                 dest = os.path.join(storage_dir, token + "_" + safe_name)
-                with open(dest, "wb") as f:
-                    f.write(body)
+                shutil.move(temp_path, dest)
 
                 files[token] = {
                     "path": dest,
                     "name": safe_name,
-                    "size": len(body),
+                    "size": fsize,
                 }
 
                 local_ip = get_local_ip()

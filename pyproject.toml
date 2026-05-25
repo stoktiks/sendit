@@ -10,7 +10,8 @@ authors = [{name = "stoktiks"}]
 license = {text = "MIT"}
 readme = "README.md"
 requires-python = ">=3.6"
-dependencies = ["qrcode>=7.0"]
+dependencies = []
+optional-dependencies = {qrcode = ["qrcode>=7.0"]}
 
 [project.scripts]
 sendit = "sendit.cli:main"

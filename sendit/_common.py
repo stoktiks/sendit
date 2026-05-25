@@ -34,7 +34,8 @@ def format_size(n):
     """Format byte count as human-readable string (B/KB/MB/GB)."""
     for unit in ("B", "KB", "MB", "GB"):
         if n < 1024:
-            return f"{n:.1f} {unit}"
+            decimals = 0 if unit == "B" else 1
+            return f"{n:.{decimals}f} {unit}"
         n /= 1024
     return f"{n:.1f} TB"
 
