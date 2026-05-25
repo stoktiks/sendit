@@ -103,7 +103,7 @@ a.button:hover {{ background: #3a56d4; }}
   <h1>Incoming File</h1>
   <div class="filename">{_escape_html(file_name)}</div>
   <div class="size">{_format_size(file_size)}</div>
-  <a class="button" href="/download">Download</a>
+  <a class="button" href="/{token}/download">Download</a>
   <div class="footer">sendit · simple file transfer</div>
 </div>
 </body>
