@@ -8,6 +8,7 @@ def print_qr(url):
     try:
         import qrcode
     except ImportError:
+        print("  (install 'qrcode' for QR: pip install qrcode)")
         return
 
     qr = qrcode.QRCode(border=2, box_size=1)
