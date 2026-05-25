@@ -2,8 +2,38 @@
 
 **Simple file transfer, zero dependencies, works everywhere.**
 
+Share files between devices instantly. The receiver only needs a browser — no app, no install, no account.
+
+## Installation
+
+> 📌 Requires **Python 3.8+** (already installed on most systems).
+
+### Option 1 — Clone & Install (recommended)
+
+```bash
+git clone https://github.com/stoktiks/sendit.git
+cd sendit
+pip install .
 ```
-pip install sendit
+
+Or in editable mode (so `git pull` updates without reinstalling):
+
+```bash
+pip install -e .
+```
+
+### Option 2 — Direct pip from GitHub
+
+```bash
+pip install git+https://github.com/stoktiks/sendit.git
+```
+
+### Option 3 — Run without installing
+
+From the cloned directory:
+
+```bash
+python -m sendit send ./file.zip
 ```
 
 ## Quick Start
@@ -15,7 +45,7 @@ sendit send ./bigfile.zip
 ```
 
 **Receiver (in browser):**
-Just open the link! Works on any device with a browser.
+Just open the link! Works on any device — phone, tablet, laptop, smart TV. No app needed.
 
 **Receiver (CLI):**
 ```bash
