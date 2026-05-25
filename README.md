@@ -1,26 +1,14 @@
 # sendit
 
-**Simple file transfer, zero dependencies, works everywhere.**
+**Zero-dependency file transfer. Share files between any devices — the receiver just needs a browser.**
 
-Share files between devices instantly. The receiver only needs a browser — no app, no install, no account.
+![Upload](screenshots/sendit-web-upload.png) | ![Download](screenshots/sendit-web-download.png)
+:---:|:---:
+**Web UI** — drag & drop to share | **Receiver** — download with progress bar
 
-## Demo
+---
 
-| 🕸️ Send (drag & drop) | 📥 Receive (in browser) |
-|:---:|:---:|
-| ![Upload UI](screenshots/sendit-web-upload.png) | ![Download UI](screenshots/sendit-web-download.png) |
-
-## Features
-
-- 🕸️ **`sendit web`** — Drag & drop visual UI in your browser
-- 📤 **`sendit send`** — Send files from command line
-- 📱 **QR code** — Scan with your phone, no typing URLs
-- 📊 **Progress bar** with speed & ETA (both terminal & browser)
-- 🔒 **Random token** protects your file
-- ⏱️ **Auto-shutdown** after transfer completes
-- 💻 **Zero dependencies** — pure Python stdlib
-
-## Installation
+## Install
 
 ```bash
 git clone https://github.com/stoktiks/sendit.git
@@ -28,78 +16,63 @@ cd sendit
 pip install -e .
 ```
 
-## Quick Start
+---
 
-### 🕸️ Visual sender (drag & drop)
+## Commands
 
-```bash
-sendit web
-# → http://192.168.1.5:34137  — open in browser
-```
-
-Drag & drop any file → instantly get a shareable link + QR code. No terminal commands needed beyond starting it.
-
-### 📤 CLI sender
+### `sendit web` — visual drag & drop
 
 ```bash
-sendit send ./bigfile.zip
-# → 🔗 http://192.168.1.5:9876/a3b2c1
-# → 📱 QR code in terminal
+sendit web            # share files from your browser
+sendit web 8080       # use a specific port
 ```
 
-### 📥 Receiver (browser)
+Open the URL in your browser, drag & drop a file, and share the generated link. **Receiver opens the link in any browser** — no install needed.
 
-Scan the QR code or open the link. A clean download page appears with the file info and a real-time progress bar.
-
-### 📥 Receiver (CLI)
+### `sendit send` — fast CLI sender
 
 ```bash
-sendit get http://192.168.1.5:9876/a3b2c1
+sendit send ./video.mp4         # share any file
+sendit send ./file.zip --port 9000
 ```
 
-Shows progress with speed & ETA:
-```
-  ██████████████░░░░░░░░  60%  117.3 MB/s  ETA 2s
-  ████████████████████████  100%  127.0 MB/s  0.0s
-✅ Saved to ./bigfile.zip
-```
+Shows a QR code + URL in the terminal. Receiver scans or opens the link.
 
-## Usage
+### `sendit get` — download via CLI
 
 ```bash
-# Sender: visual mode — drag & drop in browser
-sendit web                     # random port
-sendit web 8080                # specific port
-
-# Sender: CLI mode
-sendit send ./photo.jpg
-sendit send ./video.mp4 --port 8080
-sendit send ./huge.zip --timeout 600
-
-# Receiver: browser — just scan QR or open link
-
-# Receiver: CLI download
 sendit get http://192.168.1.5:9876/a3b2c1
 sendit get http://192.168.1.5:9876/a3b2c1 -o myfile.zip
 ```
 
-## Why sendit?
+Shows a live progress bar with speed & ETA.
 
-| Tool | Install both sides? | Visual sender? | Progress bar? | QR code? |
+---
+
+## Features
+
+- **📱 QR codes** — scan with your phone, no typing
+- **📊 Progress bar** — speed & ETA in both terminal and browser
+- **🔒 Random token** — protects each file from random access
+- **⏱️ Auto-shutdown** — server stops after the transfer
+- **🔄 Cross-platform** — Linux, macOS, Windows (any OS with Python)
+- **📦 Zero dependencies** — pure Python stdlib
+
+## How it works
+
+1. **Sender** starts a tiny HTTP server with a random token
+2. A **QR code** + URL appears (in terminal or browser UI)
+3. **Receiver** scans or opens the link — on any device with a browser
+4. A clean **download page** shows file info + progress bar
+5. Server **auto-shuts down** after the transfer
+
+| Tool | Both sides need install? | Visual sender? | Progress bar? | QR code? |
 |------|:---:|:---:|:---:|:---:|
-| **sendit** | ❌ (browser works!) | ✅ (drag & drop) | ✅ | ✅ |
+| **sendit** | ❌ | ✅ | ✅ | ✅ |
 | scp/rsync | ✅ | ❌ | ❌ | ❌ |
 | magic-wormhole | ✅ | ❌ | ✅ | ❌ |
-| nc (netcat) | ✅ | ❌ | ❌ | ❌ |
 
-## How It Works
-
-1. **Sender** starts a tiny HTTP server
-2. **CLI mode**: QR code + URL appear in the terminal
-3. **Web mode**: a beautiful drag & drop page opens in the browser
-4. **Receiver** scans QR or opens the link — no app needed
-5. **Progress bar** shows real-time speed & ETA
-6. Server **auto-shuts down** after transfer
+---
 
 ## License
 
