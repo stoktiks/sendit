@@ -2,6 +2,7 @@ import argparse
 import sys
 from .server import run_server
 from .client import run_client
+from .serve import run_web_server
 
 
 def main():
@@ -19,6 +20,11 @@ def main():
     send_p.add_argument("--timeout", type=int, default=300,
                         help="Max seconds before server shuts down (default: 300)")
 
+    # web
+    web_p = sub.add_parser("web", help="Start a visual web UI for sending files")
+    web_p.add_argument("--port", type=int, default=0,
+                       help="Port to listen on (default: random available)")
+
     # get
     get_p = sub.add_parser("get", help="Download a file from a sendit link")
     get_p.add_argument("url", help="URL or code from the sender")
@@ -28,6 +34,8 @@ def main():
 
     if args.command == "send":
         run_server(args.file, port=args.port, timeout=args.timeout)
+    elif args.command == "web":
+        run_web_server(port=args.port)
     elif args.command == "get":
         run_client(args.url, output=args.output)
     else:
