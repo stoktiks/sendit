@@ -2,77 +2,15 @@
 
 import os
 import json
-import html
-import uuid
 import mimetypes
 import shutil
 import tempfile
 import threading
-import time
 import http.server
-import socket
 import secrets
 import sys
 
-
-def _find_free_port(preferred=0):
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    try:
-        s.bind(("0.0.0.0", preferred))
-        return s.getsockname()[1]
-    finally:
-        s.close()
-
-
-def _get_local_ip():
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    try:
-        s.connect(("10.255.255.255", 1))
-        ip = s.getsockname()[0]
-    except Exception:
-        ip = "127.0.0.1"
-    finally:
-        s.close()
-    return ip
-
-
-def _format_size(n):
-    for unit in ("B", "KB", "MB", "GB"):
-        if n < 1024:
-            return f"{n:.1f} {unit}"
-        n /= 1024
-    return f"{n:.1f} TB"
-
-
-def _escape_html(s):
-    return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
-
-
-def _header_safe_filename(name):
-    """Escape a filename for safe use in Content-Disposition HTTP header."""
-    name = "".join(c for c in name if c not in ("\r", "\n") and ord(c) >= 32)
-    name = name.replace("\\", "\\\\")
-    name = name.replace('"', '\\"')
-    return name
-
-
-def _icon_for_ext(ext):
-    ext = ext.lower()
-    icons = {
-        ".jpg": "🖼️", ".jpeg": "🖼️", ".png": "🖼️", ".gif": "🖼️",
-        ".webp": "🖼️", ".svg": "🖼️", ".ico": "🖼️",
-        ".mp4": "🎬", ".mov": "🎬", ".avi": "🎬", ".mkv": "🎬", ".webm": "🎬",
-        ".mp3": "🎵", ".wav": "🎵", ".flac": "🎵", ".ogg": "🎵",
-        ".zip": "📦", ".rar": "📦", ".7z": "📦", ".tar": "📦",
-        ".gz": "📦", ".bz2": "📦",
-        ".pdf": "📄", ".doc": "📄", ".docx": "📄",
-        ".txt": "📝", ".md": "📝",
-        ".py": "🐍", ".js": "📜", ".html": "🌐", ".css": "🎨",
-        ".exe": "⚙️", ".dmg": "💿", ".apk": "📱",
-        ".json": "📋", ".yaml": "📋", ".csv": "📊",
-    }
-    return icons.get(ext, "📦")
+from ._common import find_free_port, get_local_ip, format_size, escape_html, header_safe_filename, icon_for_ext
 
 
 UPLOAD_PAGE = """<!DOCTYPE html>
@@ -386,27 +324,13 @@ def run_web_server(port=0, storage_dir=None):
             fname = info["name"]
             fsize = info["size"]
             ext = os.path.splitext(fname)[1].lower()
-            icon_map = {
-                ".jpg": "🖼️", ".jpeg": "🖼️", ".png": "🖼️", ".gif": "🖼️",
-                ".webp": "🖼️", ".svg": "🖼️",
-                ".mp4": "🎬", ".mov": "🎬", ".avi": "🎬", ".mkv": "🎬",
-                ".webm": "🎬",
-                ".mp3": "🎵", ".wav": "🎵", ".flac": "🎵", ".ogg": "🎵",
-                ".zip": "📦", ".rar": "📦", ".7z": "📦", ".tar": "📦",
-                ".gz": "📦", ".bz2": "📦",
-                ".pdf": "📄", ".doc": "📄", ".docx": "📄",
-                ".txt": "📝", ".md": "📝",
-                ".py": "🐍", ".js": "📜", ".html": "🌐", ".css": "🎨",
-                ".exe": "⚙️", ".dmg": "💿", ".apk": "📱",
-                ".json": "📋", ".yaml": "📋", ".csv": "📊",
-            }
-            icon = icon_map.get(ext, "📦")
+            icon = icon_for_ext(ext)
 
             html_page = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-<title>sendit — {_escape_html(fname)}</title>
+<title>sendit — {escape_html(fname)}</title>
 <style>
 * {{ margin:0; padding:0; box-sizing:border-box; }}
 body {{
@@ -468,7 +392,7 @@ h1 {{ font-size:22px;font-weight:700;margin-bottom:4px; }}
   <div class="icon-wrap"><span>{icon}</span></div>
   <h1>Incoming File</h1>
   <p class="subtitle">ready to download</p>
-  <div class="file-card"><div class="filename">{_escape_html(fname)}</div><div class="filesize">{_format_size(fsize)}</div></div>
+  <div class="file-card"><div class="filename">{escape_html(fname)}</div><div class="filesize">{format_size(fsize)}</div></div>
   <button id="dlbtn" onclick="startDownload()"><span>⬇</span> Download</button>
   <div id="progress-wrap"><div id="progress-bar-bg"><div id="progress-bar"></div></div><div id="progress-text">Starting...</div></div>
   <div id="complete-wrap"><div class="checkmark"><svg viewBox="0 0 24 24" fill="none" stroke="#43ee90" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div><div class="done-text">Download complete!</div></div>
@@ -491,7 +415,7 @@ async function startDownload() {{
     }}
     bar.style.width='100%';txt.textContent='100% — '+formatSize(total);
     const blob=new Blob(chunks,{{type:resp.headers.get('content-type')||'application/octet-stream'}});
-    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='{_escape_html(fname)}';
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='{escape_html(fname)}';
     document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(a.href);
     wrap.style.display='none';cw.style.display='block';
   }} catch(err){{txt.textContent='❌ '+err.message;bar.style.width='0%';btn.disabled=false;btn.innerHTML='<span>🔄</span> Retry';}}
@@ -515,8 +439,9 @@ function formatSize(n){{if(n===0)return'0 B';const units=['B','KB','MB','GB'];le
                     self.send_response(200)
                     self.send_header("Content-Type", self._guess_content_type(info["name"]))
                     self.send_header("Content-Length", str(fsize))
+                    safe_name = header_safe_filename(info["name"])
                     self.send_header("Content-Disposition",
-                                     f'attachment; filename="{_header_safe_filename(info["name"])}"')
+                                     f'attachment; filename="{safe_name}"')
                     self.end_headers()
                 except Exception:
                     self._send_json(404, {"error": "file not found"})
@@ -535,8 +460,9 @@ function formatSize(n){{if(n===0)return'0 B';const units=['B','KB','MB','GB'];le
                 self.send_response(200)
                 self.send_header("Content-Type", self._guess_content_type(fname))
                 self.send_header("Content-Length", str(fsize))
+                safe_name = header_safe_filename(fname)
                 self.send_header("Content-Disposition",
-                                 f'attachment; filename="{_header_safe_filename(fname)}"')
+                                 f'attachment; filename="{safe_name}"')
                 self.end_headers()
                 with open(fpath, "rb") as f:
                     while True:
@@ -559,7 +485,6 @@ function formatSize(n){{if(n===0)return'0 B';const units=['B','KB','MB','GB'];le
             is_download = len(parts) > 1 and parts[1] == "download"
 
             if token not in files:
-                # Try numeric index for backward compat? No, 404.
                 self._send_json(404, {"error": "file not found"})
                 return
 
@@ -594,7 +519,7 @@ function formatSize(n){{if(n===0)return'0 B';const units=['B','KB','MB','GB'];le
                     "size": len(body),
                 }
 
-                local_ip = _get_local_ip()
+                local_ip = get_local_ip()
                 port = self.server.server_address[1]
                 dl_url = f"http://{local_ip}:{port}/{token}"
 
@@ -619,20 +544,20 @@ function formatSize(n){{if(n===0)return'0 B';const units=['B','KB','MB','GB'];le
             else:
                 self._send_json(404, {"error": "not found"})
 
-    listen_port = _find_free_port(port)
+    listen_port = find_free_port(port)
     server = http.server.HTTPServer(("0.0.0.0", listen_port), SenditWebHandler)
 
-    local_ip = _get_local_ip()
+    local_ip = get_local_ip()
     url = f"http://{local_ip}:{listen_port}"
 
-    print(f"🌐 sendit web — visual file sharing")
+    print(f"\U0001f310 sendit web \u2014 visual file sharing")
     print()
-    print(f"🔗 {url}")
+    print(f"\U0001f517 {url}")
     print()
     print(f"Open the link in your browser, drag & drop a file,")
     print(f"and share the generated download link!")
     print()
-    print("⏳ Server running... (Ctrl+C to stop)")
+    print("\u23f3 Server running... (Ctrl+C to stop)")
 
     # Print QR for the server URL
     try:
@@ -644,7 +569,7 @@ function formatSize(n){{if(n===0)return'0 B';const units=['B','KB','MB','GB'];le
     try:
         server.serve_forever()
     except KeyboardInterrupt:
-        print("\n👋 Stopped.")
+        print("\n\U0001f44b Stopped.")
     finally:
         server.server_close()
         # Cleanup temp files

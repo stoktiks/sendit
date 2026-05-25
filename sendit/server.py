@@ -10,56 +10,7 @@ import time
 import urllib.parse
 
 from .qr import print_qr
-
-
-def _find_free_port(preferred=0):
-    """Find an available TCP port."""
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    try:
-        s.bind(("0.0.0.0", preferred))
-        port = s.getsockname()[1]
-        return port
-    finally:
-        s.close()
-
-
-def _get_local_ip():
-    """Get the local IP address (the one used for LAN connectivity)."""
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    try:
-        # doesn't actually connect
-        s.connect(("10.255.255.255", 1))
-        ip = s.getsockname()[0]
-    except Exception:
-        ip = "127.0.0.1"
-    finally:
-        s.close()
-    return ip
-
-
-def _format_size(n):
-    for unit in ("B", "KB", "MB", "GB"):
-        if n < 1024:
-            return f"{n:.1f} {unit}"
-        n /= 1024
-    return f"{n:.1f} TB"
-
-
-def _escape_html(s):
-    """Escape text for safe embedding in HTML."""
-    return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
-
-
-def _header_safe_filename(name):
-    """Escape a filename for safe use in Content-Disposition HTTP header.
-    Strips control chars and backslash-escapes quotes (prevents header injection)."""
-    # Strip newlines and control chars to prevent header injection
-    name = "".join(c for c in name if c not in ("\r", "\n") and ord(c) >= 32)
-    # Backslash-escape quotes and backslashes themselves (RFC 6266)
-    name = name.replace("\\", "\\\\")
-    name = name.replace('"', '\\"')
-    return name
+from ._common import find_free_port, get_local_ip, format_size, escape_html, header_safe_filename, icon_for_ext
 
 
 def _make_handler(file_path, file_size, file_name, token, shutdown_event):
@@ -67,7 +18,6 @@ def _make_handler(file_path, file_size, file_name, token, shutdown_event):
 
     class SenditHandler(http.server.BaseHTTPRequestHandler):
         def log_message(self, fmt, *args):
-            # quieter logging
             pass
 
         def _send_json(self, code, data):
@@ -80,31 +30,15 @@ def _make_handler(file_path, file_size, file_name, token, shutdown_event):
 
         def _send_ui(self):
             """Send a polished web UI for browser download."""
-            # Choose an icon based on file type
             ext = os.path.splitext(file_name)[1].lower()
-            icon_map = {
-                ".jpg": "\U0001f5bc\ufe0f", ".jpeg": "\U0001f5bc\ufe0f", ".png": "\U0001f5bc\ufe0f", ".gif": "\U0001f5bc\ufe0f",
-                ".webp": "\U0001f5bc\ufe0f", ".svg": "\U0001f5bc\ufe0f", ".ico": "\U0001f5bc\ufe0f",
-                ".mp4": "\U0001f3ac", ".mov": "\U0001f3ac", ".avi": "\U0001f3ac", ".mkv": "\U0001f3ac",
-                ".webm": "\U0001f3ac",
-                ".mp3": "\U0001f3b5", ".wav": "\U0001f3b5", ".flac": "\U0001f3b5", ".ogg": "\U0001f3b5",
-                ".zip": "\U0001f4e6", ".rar": "\U0001f4e6", ".7z": "\U0001f4e6", ".tar": "\U0001f4e6",
-                ".gz": "\U0001f4e6", ".bz2": "\U0001f4e6",
-                ".pdf": "\U0001f4c4", ".doc": "\U0001f4c4", ".docx": "\U0001f4c4",
-                ".txt": "\U0001f4dd", ".md": "\U0001f4dd",
-                ".py": "\U0001f40d", ".js": "\U0001f4dc", ".html": "\U0001f310", ".css": "\U0001f3a8",
-                ".exe": "\u2699\ufe0f", ".dmg": "\U0001f4bf", ".apk": "\U0001f4f1",
-                ".json": "\U0001f4cb", ".yaml": "\U0001f4cb", ".yml": "\U0001f4cb",
-                ".csv": "\U0001f4ca", ".xls": "\U0001f4ca", ".xlsx": "\U0001f4ca",
-            }
-            icon = icon_map.get(ext, "\U0001f4e6")
+            icon = icon_for_ext(ext)
 
             html = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-<title>sendit \u2014 {_escape_html(file_name)}</title>
+<title>sendit \u2014 {escape_html(file_name)}</title>
 <style>
 * {{ margin: 0; padding: 0; box-sizing: border-box; }}
 body {{
@@ -205,8 +139,8 @@ h1 {{ font-size: 22px; font-weight: 700; margin-bottom: 4px; }}
   <p class="subtitle">ready to download</p>
 
   <div class="file-card">
-    <div class="filename">{_escape_html(file_name)}</div>
-    <div class="filesize">{_format_size(file_size)}</div>
+    <div class="filename">{escape_html(file_name)}</div>
+    <div class="filesize">{format_size(file_size)}</div>
   </div>
 
   <button id="dlbtn" onclick="startDownload()">
@@ -240,7 +174,6 @@ async function startDownload() {{
   btn.innerHTML = '<span>\u23f3</span> Preparing...';
   wrap.style.display = 'block';
   try {{
-    // Fetch via AJAX for progress tracking
     const resp = await fetch('/{token}/download');
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const total = parseInt(resp.headers.get('content-length') || '0');
@@ -262,16 +195,14 @@ async function startDownload() {{
     }}
     bar.style.width = '100%';
     txt.textContent = '100% \u2014 ' + formatSize(total);
-    // Save file
     const blob = new Blob(chunks, {{type: resp.headers.get('content-type') || 'application/octet-stream'}});
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = '{_escape_html(file_name)}';
+    a.download = '{escape_html(file_name)}';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(a.href);
-    // Show completion
     wrap.style.display = 'none';
     cwrap.style.display = 'block';
   }} catch(err) {{
@@ -313,7 +244,6 @@ function formatSize(n) {{
 
             # Shutdown after delivering the file
             if path == f"/{token}/download":
-                # Flush the response before signaling shutdown
                 try:
                     self.wfile.flush()
                 except Exception:
@@ -327,10 +257,9 @@ function formatSize(n) {{
                 guessed, _ = mimetypes.guess_type(file_name)
                 self.send_header("Content-Type", guessed or "application/octet-stream")
                 self.send_header("Content-Length", str(fsize))
-                safe_name = _header_safe_filename(file_name)
+                safe_name = header_safe_filename(file_name)
                 self.send_header("Content-Disposition",
                                  f'attachment; filename="{safe_name}"')
-                # Also send RFC 5987 for non-ASCII filenames
                 self.send_header("Content-Disposition",
                                  f"attachment; filename*=UTF-8''{urllib.parse.quote(file_name)}")
                 self.end_headers()
@@ -344,7 +273,7 @@ function formatSize(n) {{
                 try:
                     self._send_json(500, {"error": str(e)})
                 except Exception:
-                    pass  # Headers already sent, can't respond
+                    pass
 
         def do_HEAD(self):
             parsed = urllib.parse.urlparse(self.path)
@@ -356,7 +285,7 @@ function formatSize(n) {{
                     guessed, _ = mimetypes.guess_type(file_name)
                     self.send_header("Content-Type", guessed or "application/octet-stream")
                     self.send_header("Content-Length", str(fsize))
-                    safe_name = _header_safe_filename(file_name)
+                    safe_name = header_safe_filename(file_name)
                     self.send_header("Content-Disposition",
                                      f'attachment; filename="{safe_name}"')
                     self.end_headers()
@@ -385,15 +314,15 @@ def run_server(file_path, port=0, timeout=300):
     shutdown_event = threading.Event()
     handler = _make_handler(file_path, file_size, file_name, token, shutdown_event)
 
-    listen_port = _find_free_port(port)
+    listen_port = find_free_port(port)
     server = http.server.HTTPServer(("0.0.0.0", listen_port), handler)
     server.timeout = 1.0  # check shutdown every second
 
-    local_ip = _get_local_ip()
+    local_ip = get_local_ip()
     url = f"http://{local_ip}:{listen_port}/{token}"
 
     print(f"\U0001f4e6 sendit \u2014 {file_name}")
-    print(f"\U0001f4cf Size: {_format_size(file_size)}")
+    print(f"\U0001f4cf Size: {format_size(file_size)}")
     print()
     print(f"\U0001f517 {url}")
     print_qr(url)
