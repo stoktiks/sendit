@@ -12,25 +12,26 @@
 ### 📱 Android (Termux)
 
 ```bash
-pkg install python
-pip install sendit
+pkg install python git
+git clone https://github.com/stoktiks/sendit.git
+cd sendit
+pip install -e .
 ```
 
-**Or download the portable `.pyz`** (works on any device with Python):
+**Or download the portable `.pyz`** (just needs Python):
 
 ```bash
 # Download from releases
 chmod +x sendit.pyz
 ./sendit.pyz web
-
-# Or use directly with Python
-python sendit.pyz web
 ```
 
 ### 🐍 Python (any OS)
 
 ```bash
-pip install sendit
+git clone https://github.com/stoktiks/sendit.git
+cd sendit
+pip install -e .
 ```
 
 ### 📦 Standalone binary (no Python required)
@@ -41,8 +42,8 @@ Download from [Releases](https://github.com/stoktiks/sendit/releases):
 |----------|--------|
 | Linux x86_64 | `sendit-linux-x86_64` |
 | **Linux ARM64** (Android/RPi) | **`sendit-linux-arm64`** |
-| macOS | `sendit-darwin-x86_64` |
-| Windows | `sendit-x86_64.exe` |
+| macOS | `sendit-darwin-arm64` |
+| Windows | `sendit-windows-x86_64.exe` |
 | **Any device with Python 3.8+** | **`sendit.pyz`** |
 
 ```bash
@@ -55,7 +56,7 @@ chmod +x sendit-linux-arm64
 ./sendit-linux-arm64 web
 
 # Windows
-sendit-x86_64.exe web
+sendit-windows-x86_64.exe web
 
 # Portable (any OS with Python)
 python sendit.pyz web
@@ -106,7 +107,7 @@ Shows a live progress bar with speed & ETA.
 - **📊 Progress bar** — speed & ETA in both terminal and browser
 - **🔒 Random token** — protects each file from random access
 - **⏱️ Auto-shutdown** — server stops after the transfer
-- **📱 Android-ready** — works on Termux via pip, .pyz, or ARM64 binary
+- **📱 Android-ready** — works on Termux via GitHub install, .pyz, or ARM64 binary
 - **🔄 Cross-platform** — Linux, macOS, Windows, Android
 - **📦 Zero dependencies** — pure Python stdlib
 
