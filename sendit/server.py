@@ -63,75 +63,170 @@ def _make_handler(file_path, file_size, file_name, token, shutdown_event):
             self.wfile.write(body)
 
         def _send_ui(self):
-            """Send a minimal web UI for browser download."""
+            """Send a polished web UI for browser download."""
+            # Choose an icon based on file type
+            ext = os.path.splitext(file_name)[1].lower()
+            icon_map = {
+                ".jpg": "🖼️", ".jpeg": "🖼️", ".png": "🖼️", ".gif": "🖼️",
+                ".webp": "🖼️", ".svg": "🖼️", ".ico": "🖼️",
+                ".mp4": "🎬", ".mov": "🎬", ".avi": "🎬", ".mkv": "🎬",
+                ".webm": "🎬",
+                ".mp3": "🎵", ".wav": "🎵", ".flac": "🎵", ".ogg": "🎵",
+                ".zip": "📦", ".rar": "📦", ".7z": "📦", ".tar": "📦",
+                ".gz": "📦", ".bz2": "📦",
+                ".pdf": "📄", ".doc": "📄", ".docx": "📄",
+                ".txt": "📝", ".md": "📝",
+                ".py": "🐍", ".js": "📜", ".html": "🌐", ".css": "🎨",
+                ".exe": "⚙️", ".dmg": "💿", ".apk": "📱",
+                ".json": "📋", ".yaml": "📋", ".yml": "📋",
+                ".csv": "📊", ".xls": "📊", ".xlsx": "📊",
+            }
+            icon = icon_map.get(ext, "📦")
+
             html = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>sendit</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>sendit — {_escape_html(file_name)}</title>
 <style>
 * {{ margin: 0; padding: 0; box-sizing: border-box; }}
 body {{
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: #0f0f0f; color: #e0e0e0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  background: linear-gradient(135deg, #0a0a1a 0%, #1a1035 40%, #0d1b2a 100%);
+  color: #e0e0e0;
   display: flex; align-items: center; justify-content: center;
-  min-height: 100vh;
+  min-height: 100vh; padding: 20px;
 }}
 .card {{
-  background: #1a1a2e; border-radius: 16px; padding: 48px 40px;
-  text-align: center; max-width: 420px; width: 90%;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  background: rgba(255,255,255,0.05);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 24px; padding: 48px 44px;
+  text-align: center; max-width: 440px; width: 100%;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.6);
 }}
-.icon {{ font-size: 48px; margin-bottom: 16px; }}
-h1 {{ font-size: 24px; margin-bottom: 8px; }}
-.filename {{ color: #888; font-size: 16px; margin-bottom: 4px; word-break: break-all; }}
-.size {{ color: #666; font-size: 14px; margin-bottom: 32px; }}
+.icon-wrap {{
+  width: 80px; height: 80px; margin: 0 auto 20px;
+  background: rgba(67,97,238,0.15); border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  animation: float 3s ease-in-out infinite;
+}}
+.icon-wrap .icon {{ font-size: 36px; line-height: 1; }}
+@keyframes float {{
+  0%, 100% {{ transform: translateY(0); }}
+  50% {{ transform: translateY(-6px); }}
+}}
+h1 {{ font-size: 22px; font-weight: 700; margin-bottom: 4px; }}
+.subtitle {{ color: rgba(255,255,255,0.4); font-size: 13px; margin-bottom: 24px; }}
+.file-card {{
+  background: rgba(255,255,255,0.04);
+  border-radius: 14px; padding: 16px 20px; margin-bottom: 28px;
+  border: 1px solid rgba(255,255,255,0.06);
+}}
+.filename {{ color: #fff; font-size: 16px; font-weight: 500; word-break: break-all; }}
+.filesize {{ color: rgba(255,255,255,0.4); font-size: 13px; margin-top: 4px; }}
 .btn-wrap {{ position: relative; }}
-a.button, .btn-wrap a {{
-  display: inline-block; background: #4361ee; color: #fff;
-  padding: 14px 48px; border-radius: 10px; text-decoration: none;
-  font-size: 16px; font-weight: 600; cursor: pointer;
-  transition: background 0.2s; border: none;
+#dlbtn {{
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%; padding: 16px 32px;
+  background: linear-gradient(135deg, #4361ee, #7c4dff);
+  color: #fff; border-radius: 14px; border: none;
+  font-size: 17px; font-weight: 600; cursor: pointer;
+  transition: all 0.25s ease; text-decoration: none;
+  box-shadow: 0 4px 20px rgba(67,97,238,0.35);
 }}
-a.button:hover {{ background: #3a56d4; }}
-a.button:disabled {{ background: #555; cursor: not-allowed; }}
+#dlbtn:hover {{ transform: translateY(-2px); box-shadow: 0 8px 30px rgba(67,97,238,0.5); }}
+#dlbtn:active {{ transform: translateY(0); }}
+#dlbtn:disabled {{ opacity: 0.5; cursor: not-allowed; transform: none; }}
 #progress-wrap {{ display: none; margin-top: 24px; }}
 #progress-bar-bg {{
-  width: 100%; height: 8px; background: #333; border-radius: 4px; overflow: hidden;
+  width: 100%; height: 6px; background: rgba(255,255,255,0.08);
+  border-radius: 3px; overflow: hidden;
 }}
 #progress-bar {{
-  height: 100%; width: 0%; background: linear-gradient(90deg, #4361ee, #7c4dff);
-  border-radius: 4px; transition: width 0.2s;
+  height: 100%; width: 0%; border-radius: 3px;
+  background: linear-gradient(90deg, #4361ee, #7c4dff);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  transition: width 0.15s ease;
 }}
-#progress-text {{ margin-top: 8px; font-size: 13px; color: #666; }}
-.footer {{ margin-top: 24px; color: #555; font-size: 12px; }}
+@keyframes shimmer {{
+  0%, 100% {{ background-position: 0% 0; }}
+  50% {{ background-position: 100% 0; }}
+}}
+#progress-text {{ margin-top: 10px; font-size: 14px; color: rgba(255,255,255,0.5);
+  font-variant-numeric: tabular-nums; }}
+#complete-wrap {{ display: none; margin-top: 24px; }}
+.checkmark {{
+  width: 56px; height: 56px; margin: 0 auto 12px;
+  background: rgba(67,238,144,0.15); border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  animation: pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}}
+@keyframes pop {{
+  0% {{ transform: scale(0); }}
+  100% {{ transform: scale(1); }}
+}}
+.checkmark svg {{ width: 28px; height: 28px; }}
+.done-text {{ color: #43ee90; font-size: 15px; font-weight: 500; }}
+.auto-note {{ color: rgba(255,255,255,0.3); font-size: 12px; margin-top: 16px; }}
+.qr-section {{ margin-top: 24px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.06); }}
+.qr-label {{ font-size: 12px; color: rgba(255,255,255,0.3); margin-bottom: 12px; }}
+.qr-img {{ display: inline-block; background: #fff; padding: 8px; border-radius: 10px; }}
+.qr-img img {{ width: 100px; height: 100px; display: block; }}
+.footer {{ margin-top: 24px; color: rgba(255,255,255,0.15); font-size: 11px; }}
+@media (max-width: 480px) {{
+  .card {{ padding: 32px 24px; }}
+  #dlbtn {{ font-size: 15px; padding: 14px 24px; }}
+}}
 </style>
 </head>
 <body>
 <div class="card">
-  <div class="icon">📦</div>
+  <div class="icon-wrap"><span class="icon">{icon}</span></div>
   <h1>Incoming File</h1>
-  <div class="filename">{_escape_html(file_name)}</div>
-  <div class="size">{_format_size(file_size)}</div>
-  <a class="button" id="dlbtn" href="/{token}/download" onclick="return startDownload(event)">Download</a>
+  <p class="subtitle">ready to download</p>
+
+  <div class="file-card">
+    <div class="filename">{_escape_html(file_name)}</div>
+    <div class="filesize">{_format_size(file_size)}</div>
+  </div>
+
+  <button id="dlbtn" onclick="startDownload()">
+    <span>⬇</span> Download
+  </button>
+
   <div id="progress-wrap">
     <div id="progress-bar-bg"><div id="progress-bar"></div></div>
     <div id="progress-text">Starting...</div>
   </div>
+
+  <div id="complete-wrap">
+    <div class="checkmark">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#43ee90" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="20 6 9 17 4 12"/>
+      </svg>
+    </div>
+    <div class="done-text">Download complete!</div>
+  </div>
+
   <div class="footer">sendit · simple file transfer</div>
 </div>
 <script>
-async function startDownload(e) {{
-  e.preventDefault();
+async function startDownload() {{
   const btn = document.getElementById('dlbtn');
   const wrap = document.getElementById('progress-wrap');
+  const cwrap = document.getElementById('complete-wrap');
   const bar = document.getElementById('progress-bar');
   const txt = document.getElementById('progress-text');
-  btn.style.display = 'none';
+  btn.disabled = true;
+  btn.innerHTML = '<span>⏳</span> Preparing...';
   wrap.style.display = 'block';
   try {{
+    // Fetch via AJAX for progress tracking
     const resp = await fetch('/{token}/download');
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const total = parseInt(resp.headers.get('content-length') || '0');
     const reader = resp.body.getReader();
     let loaded = 0;
@@ -149,9 +244,9 @@ async function startDownload(e) {{
         txt.textContent = formatSize(loaded) + ' downloaded';
       }}
     }}
-    txt.textContent = '100% — ' + formatSize(loaded);
     bar.style.width = '100%';
-    // Create blob and trigger save
+    txt.textContent = '100% — ' + formatSize(total);
+    // Save file
     const blob = new Blob(chunks, {{type: resp.headers.get('content-type') || 'application/octet-stream'}});
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
@@ -160,13 +255,18 @@ async function startDownload(e) {{
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(a.href);
-    txt.textContent = '✅ Done!';
+    // Show completion
+    wrap.style.display = 'none';
+    cwrap.style.display = 'block';
   }} catch(err) {{
-    txt.textContent = '❌ Error: ' + err.message;
+    txt.textContent = '❌ ' + err.message;
     bar.style.width = '0%';
+    btn.disabled = false;
+    btn.innerHTML = '<span>🔄</span> Retry';
   }}
 }}
 function formatSize(n) {{
+  if (n === 0) return '0 B';
   const units = ['B', 'KB', 'MB', 'GB'];
   let i = 0;
   while (n >= 1024 && i < units.length - 1) {{ n /= 1024; i++; }}
