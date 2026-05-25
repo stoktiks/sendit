@@ -49,6 +49,14 @@ def _escape_html(s):
     return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
 
 
+def _header_safe_filename(name):
+    """Escape a filename for safe use in Content-Disposition HTTP header."""
+    name = "".join(c for c in name if c not in ("\r", "\n") and ord(c) >= 32)
+    name = name.replace("\\", "\\\\")
+    name = name.replace('"', '\\"')
+    return name
+
+
 def _icon_for_ext(ext):
     ext = ext.lower()
     icons = {
@@ -374,20 +382,6 @@ def run_web_server(port=0, storage_dir=None):
                     return filename, body
             return None, None
 
-        def do_GET(self):
-            if self.path == "/":
-                self._send_html(200, UPLOAD_PAGE)
-                return
-
-            # Check if path is a token
-            token = self.path.strip("/").split("/")[0]
-            if token in files:
-                info = files[token]
-                self._serve_download_page(token, info)
-                return
-
-            self._send_json(404, {"error": "not found"})
-
         def _serve_download_page(self, token, info):
             fname = info["name"]
             fsize = info["size"]
@@ -522,7 +516,7 @@ function formatSize(n){{if(n===0)return'0 B';const units=['B','KB','MB','GB'];le
                     self.send_header("Content-Type", self._guess_content_type(info["name"]))
                     self.send_header("Content-Length", str(fsize))
                     self.send_header("Content-Disposition",
-                                     f'attachment; filename="{_escape_html(info["name"])}"')
+                                     f'attachment; filename="{_header_safe_filename(info["name"])}"')
                     self.end_headers()
                 except Exception:
                     self._send_json(404, {"error": "file not found"})
@@ -542,7 +536,7 @@ function formatSize(n){{if(n===0)return'0 B';const units=['B','KB','MB','GB'];le
                 self.send_header("Content-Type", self._guess_content_type(fname))
                 self.send_header("Content-Length", str(fsize))
                 self.send_header("Content-Disposition",
-                                 f'attachment; filename="{_escape_html(fname)}"')
+                                 f'attachment; filename="{_header_safe_filename(fname)}"')
                 self.end_headers()
                 with open(fpath, "rb") as f:
                     while True:
@@ -550,7 +544,7 @@ function formatSize(n){{if(n===0)return'0 B';const units=['B','KB','MB','GB'];le
                         if not chunk:
                             break
                         self.wfile.write(chunk)
-            except Exception:
+            except Exception as e:
                 self._send_json(500, {"error": str(e)})
 
         def do_GET(self):

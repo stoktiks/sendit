@@ -46,6 +46,22 @@ def _format_size(n):
     return f"{n:.1f} TB"
 
 
+def _escape_html(s):
+    """Escape text for safe embedding in HTML."""
+    return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
+
+
+def _header_safe_filename(name):
+    """Escape a filename for safe use in Content-Disposition HTTP header.
+    Strips control chars and backslash-escapes quotes (prevents header injection)."""
+    # Strip newlines and control chars to prevent header injection
+    name = "".join(c for c in name if c not in ("\r", "\n") and ord(c) >= 32)
+    # Backslash-escape quotes and backslashes themselves (RFC 6266)
+    name = name.replace("\\", "\\\\")
+    name = name.replace('"', '\\"')
+    return name
+
+
 def _make_handler(file_path, file_size, file_name, token, shutdown_event):
     """Create a custom HTTP request handler class."""
 
@@ -67,28 +83,28 @@ def _make_handler(file_path, file_size, file_name, token, shutdown_event):
             # Choose an icon based on file type
             ext = os.path.splitext(file_name)[1].lower()
             icon_map = {
-                ".jpg": "🖼️", ".jpeg": "🖼️", ".png": "🖼️", ".gif": "🖼️",
-                ".webp": "🖼️", ".svg": "🖼️", ".ico": "🖼️",
-                ".mp4": "🎬", ".mov": "🎬", ".avi": "🎬", ".mkv": "🎬",
-                ".webm": "🎬",
-                ".mp3": "🎵", ".wav": "🎵", ".flac": "🎵", ".ogg": "🎵",
-                ".zip": "📦", ".rar": "📦", ".7z": "📦", ".tar": "📦",
-                ".gz": "📦", ".bz2": "📦",
-                ".pdf": "📄", ".doc": "📄", ".docx": "📄",
-                ".txt": "📝", ".md": "📝",
-                ".py": "🐍", ".js": "📜", ".html": "🌐", ".css": "🎨",
-                ".exe": "⚙️", ".dmg": "💿", ".apk": "📱",
-                ".json": "📋", ".yaml": "📋", ".yml": "📋",
-                ".csv": "📊", ".xls": "📊", ".xlsx": "📊",
+                ".jpg": "\U0001f5bc\ufe0f", ".jpeg": "\U0001f5bc\ufe0f", ".png": "\U0001f5bc\ufe0f", ".gif": "\U0001f5bc\ufe0f",
+                ".webp": "\U0001f5bc\ufe0f", ".svg": "\U0001f5bc\ufe0f", ".ico": "\U0001f5bc\ufe0f",
+                ".mp4": "\U0001f3ac", ".mov": "\U0001f3ac", ".avi": "\U0001f3ac", ".mkv": "\U0001f3ac",
+                ".webm": "\U0001f3ac",
+                ".mp3": "\U0001f3b5", ".wav": "\U0001f3b5", ".flac": "\U0001f3b5", ".ogg": "\U0001f3b5",
+                ".zip": "\U0001f4e6", ".rar": "\U0001f4e6", ".7z": "\U0001f4e6", ".tar": "\U0001f4e6",
+                ".gz": "\U0001f4e6", ".bz2": "\U0001f4e6",
+                ".pdf": "\U0001f4c4", ".doc": "\U0001f4c4", ".docx": "\U0001f4c4",
+                ".txt": "\U0001f4dd", ".md": "\U0001f4dd",
+                ".py": "\U0001f40d", ".js": "\U0001f4dc", ".html": "\U0001f310", ".css": "\U0001f3a8",
+                ".exe": "\u2699\ufe0f", ".dmg": "\U0001f4bf", ".apk": "\U0001f4f1",
+                ".json": "\U0001f4cb", ".yaml": "\U0001f4cb", ".yml": "\U0001f4cb",
+                ".csv": "\U0001f4ca", ".xls": "\U0001f4ca", ".xlsx": "\U0001f4ca",
             }
-            icon = icon_map.get(ext, "📦")
+            icon = icon_map.get(ext, "\U0001f4e6")
 
             html = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-<title>sendit — {_escape_html(file_name)}</title>
+<title>sendit \u2014 {_escape_html(file_name)}</title>
 <style>
 * {{ margin: 0; padding: 0; box-sizing: border-box; }}
 body {{
@@ -194,7 +210,7 @@ h1 {{ font-size: 22px; font-weight: 700; margin-bottom: 4px; }}
   </div>
 
   <button id="dlbtn" onclick="startDownload()">
-    <span>⬇</span> Download
+    <span>\u2b07</span> Download
   </button>
 
   <div id="progress-wrap">
@@ -211,7 +227,7 @@ h1 {{ font-size: 22px; font-weight: 700; margin-bottom: 4px; }}
     <div class="done-text">Download complete!</div>
   </div>
 
-  <div class="footer">sendit · simple file transfer</div>
+  <div class="footer">sendit \u00b7 simple file transfer</div>
 </div>
 <script>
 async function startDownload() {{
@@ -221,7 +237,7 @@ async function startDownload() {{
   const bar = document.getElementById('progress-bar');
   const txt = document.getElementById('progress-text');
   btn.disabled = true;
-  btn.innerHTML = '<span>⏳</span> Preparing...';
+  btn.innerHTML = '<span>\u23f3</span> Preparing...';
   wrap.style.display = 'block';
   try {{
     // Fetch via AJAX for progress tracking
@@ -239,13 +255,13 @@ async function startDownload() {{
       if (total > 0) {{
         const pct = Math.round(loaded / total * 100);
         bar.style.width = pct + '%';
-        txt.textContent = pct + '% — ' + formatSize(loaded) + ' / ' + formatSize(total);
+        txt.textContent = pct + '% \u2014 ' + formatSize(loaded) + ' / ' + formatSize(total);
       }} else {{
         txt.textContent = formatSize(loaded) + ' downloaded';
       }}
     }}
     bar.style.width = '100%';
-    txt.textContent = '100% — ' + formatSize(total);
+    txt.textContent = '100% \u2014 ' + formatSize(total);
     // Save file
     const blob = new Blob(chunks, {{type: resp.headers.get('content-type') || 'application/octet-stream'}});
     const a = document.createElement('a');
@@ -259,10 +275,10 @@ async function startDownload() {{
     wrap.style.display = 'none';
     cwrap.style.display = 'block';
   }} catch(err) {{
-    txt.textContent = '❌ ' + err.message;
+    txt.textContent = '\u274c ' + err.message;
     bar.style.width = '0%';
     btn.disabled = false;
-    btn.innerHTML = '<span>🔄</span> Retry';
+    btn.innerHTML = '<span>\U0001f504</span> Retry';
   }}
 }}
 function formatSize(n) {{
@@ -297,6 +313,11 @@ function formatSize(n) {{
 
             # Shutdown after delivering the file
             if path == f"/{token}/download":
+                # Flush the response before signaling shutdown
+                try:
+                    self.wfile.flush()
+                except Exception:
+                    pass
                 shutdown_event.set()
 
         def _serve_file(self):
@@ -306,8 +327,12 @@ function formatSize(n) {{
                 guessed, _ = mimetypes.guess_type(file_name)
                 self.send_header("Content-Type", guessed or "application/octet-stream")
                 self.send_header("Content-Length", str(fsize))
+                safe_name = _header_safe_filename(file_name)
                 self.send_header("Content-Disposition",
-                                 f'attachment; filename="{_escape_html(file_name)}"')
+                                 f'attachment; filename="{safe_name}"')
+                # Also send RFC 5987 for non-ASCII filenames
+                self.send_header("Content-Disposition",
+                                 f"attachment; filename*=UTF-8''{urllib.parse.quote(file_name)}")
                 self.end_headers()
                 with open(file_path, "rb") as f:
                     while True:
@@ -316,16 +341,24 @@ function formatSize(n) {{
                             break
                         self.wfile.write(chunk)
             except Exception as e:
-                self._send_json(500, {"error": str(e)})
+                try:
+                    self._send_json(500, {"error": str(e)})
+                except Exception:
+                    pass  # Headers already sent, can't respond
 
         def do_HEAD(self):
-            if self.path == f"/{token}/download":
+            parsed = urllib.parse.urlparse(self.path)
+            path = parsed.path.rstrip("/")
+            if path == f"/{token}/download":
                 try:
                     fsize = os.path.getsize(file_path)
                     self.send_response(200)
                     guessed, _ = mimetypes.guess_type(file_name)
                     self.send_header("Content-Type", guessed or "application/octet-stream")
                     self.send_header("Content-Length", str(fsize))
+                    safe_name = _header_safe_filename(file_name)
+                    self.send_header("Content-Disposition",
+                                     f'attachment; filename="{safe_name}"')
                     self.end_headers()
                 except Exception:
                     self._send_json(404, {"error": "file not found"})
@@ -335,10 +368,6 @@ function formatSize(n) {{
     return SenditHandler
 
 
-def _escape_html(s):
-    return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
-
-
 def run_server(file_path, port=0, timeout=300):
     """
     Start a temporary HTTP server to serve a single file.
@@ -346,7 +375,7 @@ def run_server(file_path, port=0, timeout=300):
     """
     file_path = os.path.abspath(file_path)
     if not os.path.isfile(file_path):
-        print(f"❌ File not found: {file_path}")
+        print(f"\u274c File not found: {file_path}")
         sys.exit(1)
 
     file_name = os.path.basename(file_path)
@@ -363,28 +392,28 @@ def run_server(file_path, port=0, timeout=300):
     local_ip = _get_local_ip()
     url = f"http://{local_ip}:{listen_port}/{token}"
 
-    print(f"📦 sendit — {file_name}")
-    print(f"📏 Size: {_format_size(file_size)}")
+    print(f"\U0001f4e6 sendit \u2014 {file_name}")
+    print(f"\U0001f4cf Size: {_format_size(file_size)}")
     print()
-    print(f"🔗 {url}")
+    print(f"\U0001f517 {url}")
     print_qr(url)
     print(f"Receiver opens that link in their browser, or runs:")
     print(f"   sendit get {url}")
     print()
-    print("⏳ Waiting for download... (Ctrl+C to cancel)")
+    print("\u23f3 Waiting for download... (Ctrl+C to cancel)")
 
     start = time.time()
     try:
         while not shutdown_event.is_set():
             server.handle_request()
             if time.time() - start > timeout:
-                print("\n⏰ Timed out waiting for transfer.")
+                print("\n\u23f0 Timed out waiting for transfer.")
                 break
     except KeyboardInterrupt:
-        print("\n🚫 Cancelled.")
+        print("\n\U0001f6ab Cancelled.")
     finally:
         server.server_close()
 
     if shutdown_event.is_set():
         elapsed = time.time() - start
-        print(f"\n✅ Sent! ({elapsed:.1f}s)")
+        print(f"\n\u2705 Sent! ({elapsed:.1f}s)")
