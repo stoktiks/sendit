@@ -5,42 +5,71 @@
 [![Release](https://img.shields.io/github/v/release/stoktiks/sendit)](https://github.com/stoktiks/sendit/releases)
 [![Downloads](https://img.shields.io/github/downloads/stoktiks/sendit/total)](https://github.com/stoktiks/sendit/releases)
 
-![Upload](screenshots/sendit-web-upload.png) | ![Download](screenshots/sendit-web-download.png)
-:---:|:---:
-**Web UI** — drag & drop to share | **Receiver** — download with progress bar
-
 ---
 
 ## Install
 
+### 📱 Android (Termux)
+
+```bash
+pkg install python
+pip install sendit
+```
+
+**Or download the portable `.pyz`** (works on any device with Python):
+
+```bash
+# Download from releases
+chmod +x sendit.pyz
+./sendit.pyz web
+
+# Or use directly with Python
+python sendit.pyz web
+```
+
 ### 🐍 Python (any OS)
 
 ```bash
-git clone https://github.com/stoktiks/sendit.git
-cd sendit
-pip install -e .
+pip install sendit
 ```
 
 ### 📦 Standalone binary (no Python required)
 
 Download from [Releases](https://github.com/stoktiks/sendit/releases):
 
-- **Linux**: `sendit-linux-x86_64`
-- **macOS**: `sendit-darwin-x86_64`
-- **Windows**: `sendit-x86_64.exe`
+| Platform | Binary |
+|----------|--------|
+| Linux x86_64 | `sendit-linux-x86_64` |
+| **Linux ARM64** (Android/RPi) | **`sendit-linux-arm64`** |
+| macOS | `sendit-darwin-x86_64` |
+| Windows | `sendit-x86_64.exe` |
+| **Any device with Python 3.8+** | **`sendit.pyz`** |
 
 ```bash
 # Linux/macOS
 chmod +x sendit-linux-x86_64
 ./sendit-linux-x86_64 web
 
+# Android/Termux (ARM64)
+chmod +x sendit-linux-arm64
+./sendit-linux-arm64 web
+
 # Windows
 sendit-x86_64.exe web
+
+# Portable (any OS with Python)
+python sendit.pyz web
 ```
 
 ---
 
-## Commands
+## 3 Commands at a Glance
+
+```bash
+sendit web             # drag & drop in browser → shareable link
+sendit send ./file     # terminal + QR code sender
+sendit get <url>       # CLI download with progress bar
+```
 
 ### `sendit web` — visual drag & drop
 
@@ -77,7 +106,8 @@ Shows a live progress bar with speed & ETA.
 - **📊 Progress bar** — speed & ETA in both terminal and browser
 - **🔒 Random token** — protects each file from random access
 - **⏱️ Auto-shutdown** — server stops after the transfer
-- **🔄 Cross-platform** — Linux, macOS, Windows (any OS with Python)
+- **📱 Android-ready** — works on Termux via pip, .pyz, or ARM64 binary
+- **🔄 Cross-platform** — Linux, macOS, Windows, Android
 - **📦 Zero dependencies** — pure Python stdlib
 
 ## How it works
@@ -88,11 +118,11 @@ Shows a live progress bar with speed & ETA.
 4. A clean **download page** shows file info + progress bar
 5. Server **auto-shuts down** after the transfer
 
-| Tool | Both sides need install? | Visual sender? | Progress bar? | QR code? |
-|------|:---:|:---:|:---:|:---:|
-| **sendit** | ❌ | ✅ | ✅ | ✅ |
-| scp/rsync | ✅ | ❌ | ❌ | ❌ |
-| magic-wormhole | ✅ | ❌ | ✅ | ❌ |
+| Tool | Both sides need install? | Visual sender? | Progress bar? | QR code? | Android? |
+|------|:---:|:---:|:---:|:---:|:---:|
+| **sendit** | ❌ | ✅ | ✅ | ✅ | ✅ |
+| scp/rsync | ✅ | ❌ | ❌ | ❌ | ❌ |
+| magic-wormhole | ✅ | ❌ | ✅ | ❌ | ❌ |
 
 ---
 
