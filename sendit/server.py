@@ -9,6 +9,8 @@ import threading
 import time
 import urllib.parse
 
+from .qr import print_qr
+
 
 def _find_free_port(preferred=0):
     """Find an available TCP port."""
@@ -198,7 +200,7 @@ def run_server(file_path, port=0, timeout=300):
     print(f"📏 Size: {_format_size(file_size)}")
     print()
     print(f"🔗 {url}")
-    print()
+    print_qr(url)
     print(f"Receiver opens that link in their browser, or runs:")
     print(f"   sendit get {url}")
     print()
