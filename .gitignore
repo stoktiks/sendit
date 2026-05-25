@@ -8,3 +8,8 @@ venv/
 .env
 sendit.pyz
 screenshots/
+*.apk
+sendit-android/.gradle/
+sendit-android/app/build/
+sendit-android/local.properties
+sendit-android/gradle/wrapper/gradle-wrapper.jar

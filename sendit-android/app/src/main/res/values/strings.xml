@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">sendit</string>
+    <string name="start_server">Start Server</string>
+    <string name="stop_server">Stop Server</string>
+    <string name="server_url">Server URL</string>
+    <string name="notification_channel">sendit Server</string>
+    <string name="tap_to_open">Tap to open sendit</string>
+    <string name="sharing_via">Sharing via sendit</string>
+    <string name="starting">Starting server...</string>
+</resources>
