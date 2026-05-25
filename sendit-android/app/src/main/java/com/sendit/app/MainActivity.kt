@@ -5,8 +5,11 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.graphics.Bitmap
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.webkit.ValueCallback
+import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -72,11 +75,13 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private var filePathCallback: ValueCallback<Array<Uri>>? = null
+
     private fun setupWebView() {
         webView.settings.apply {
             javaScriptEnabled = true
             domStorageEnabled = true
-            allowFileAccess = false
+            allowFileAccess = true
             builtInZoomControls = true
             displayZoomControls = false
             useWideViewPort = true
@@ -91,6 +96,20 @@ class MainActivity : AppCompatActivity() {
         webView.webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
                 return false
+            }
+        }
+
+        webView.webChromeClient = object : WebChromeClient() {
+            override fun onShowFileChooser(
+                webView: WebView?,
+                filePathCallback: ValueCallback<Array<Uri>>?,
+                fileChooserParams: FileChooserParams?
+            ): Boolean {
+                this@MainActivity.filePathCallback?.onReceiveValue(null)
+                this@MainActivity.filePathCallback = filePathCallback
+                val intent = fileChooserParams?.createIntent() ?: return false
+                startActivityForResult(intent, FILE_CHOOSER_REQUEST)
+                return true
             }
         }
     }
@@ -167,7 +186,21 @@ class MainActivity : AppCompatActivity() {
         super.onDestroy()
     }
 
+    @Deprecated("Use registerForActivityResult")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == FILE_CHOOSER_REQUEST) {
+            filePathCallback?.onReceiveValue(
+                if (resultCode == RESULT_OK) WebChromeClient.FileChooserParams.parseResult(resultCode, data)
+                else null
+            )
+            filePathCallback = null
+        }
+    }
+
     companion object {
+        private const val FILE_CHOOSER_REQUEST = 1001
+
         fun getLocalIpAddress(): String {
             NetworkInterface.getNetworkInterfaces()?.iterator()?.forEach { iface ->
                 if (iface.isLoopback || !iface.isUp) return@forEach
