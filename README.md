@@ -2,6 +2,9 @@
 
 **Zero-dependency file transfer. Share files between any devices — the receiver just needs a browser.**
 
+[![Release](https://img.shields.io/github/v/release/stoktiks/sendit)](https://github.com/stoktiks/sendit/releases)
+[![Downloads](https://img.shields.io/github/downloads/stoktiks/sendit/total)](https://github.com/stoktiks/sendit/releases)
+
 ![Upload](screenshots/sendit-web-upload.png) | ![Download](screenshots/sendit-web-download.png)
 :---:|:---:
 **Web UI** — drag & drop to share | **Receiver** — download with progress bar
@@ -10,10 +13,29 @@
 
 ## Install
 
+### 🐍 Python (any OS)
+
 ```bash
 git clone https://github.com/stoktiks/sendit.git
 cd sendit
 pip install -e .
+```
+
+### 📦 Standalone binary (no Python required)
+
+Download from [Releases](https://github.com/stoktiks/sendit/releases):
+
+- **Linux**: `sendit-linux-x86_64`
+- **macOS**: `sendit-darwin-x86_64`
+- **Windows**: `sendit-x86_64.exe`
+
+```bash
+# Linux/macOS
+chmod +x sendit-linux-x86_64
+./sendit-linux-x86_64 web
+
+# Windows
+sendit-x86_64.exe web
 ```
 
 ---
