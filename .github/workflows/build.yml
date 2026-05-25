@@ -116,6 +116,7 @@ jobs:
       - name: Generate Gradle wrapper (in temp dir to avoid project config)
         run: |
           mkdir -p /tmp/gradle-init
+          echo "rootProject.name = 'init'" > /tmp/gradle-init/settings.gradle
           cd /tmp/gradle-init
           gradle wrapper --gradle-version 8.2
           cp -r gradle gradlew gradlew.bat /home/runner/work/sendit/sendit/sendit-android/
