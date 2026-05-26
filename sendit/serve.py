@@ -224,7 +224,7 @@ function showShare(name, size, url, qrDataUrl) {
 function copyLink() {
   const input = document.getElementById('share-url');
   const btn = document.getElementById('copy-btn');
-  input.select(); navigator.clipboard.writeText(input.value);
+  input.select(); input.setSelectionRange(0, 99999); document.execCommand('copy');
   btn.textContent = '✅ Copied!';
   btn.classList.add('copied');
   setTimeout(function() { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
