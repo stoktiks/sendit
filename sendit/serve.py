@@ -642,20 +642,22 @@ function formatSize(n){{if(n===0)return'0 B';const units=['B','KB','MB','GB'];le
                 port = self.server.server_address[1]
                 dl_url = f"http://{local_ip}:{port}/{token}"
 
-                # Generate QR code data URL
+                # Generate QR code data URL (pure Python SVG — no Pillow needed)
                 qr_data_url = ""
                 try:
                     import qrcode
-                    from io import BytesIO
+                    from qrcode.image.svg import SvgImage
                     import base64
                     qr = qrcode.QRCode(border=2, box_size=5)
                     qr.add_data(dl_url)
                     qr.make(fit=True)
-                    img = qr.make_image(fill_color="#4361ee", back_color="#fff")
-                    buf = BytesIO()
-                    img.save(buf, format="PNG")
-                    b64 = base64.b64encode(buf.getvalue()).decode()
-                    qr_data_url = "data:image/png;base64," + b64
+                    img = qr.make_image(image_factory=SvgImage,
+                                        fill_color="#4361ee", back_color="#fff")
+                    import io as _io
+                    _buf = _io.BytesIO()
+                    img.save(_buf)
+                    b64 = base64.b64encode(_buf.getvalue()).decode()
+                    qr_data_url = "data:image/svg+xml;base64," + b64
                 except ImportError:
                     pass
 
