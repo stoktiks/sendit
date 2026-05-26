@@ -11,19 +11,19 @@
 ## Quick Start (30 seconds)
 
 ```bash
-# 1. Download a single binary from Releases
-chmod +x sendit-linux-x86_64
+# 1. Download sendit-web-linux-x86_64 from Releases
+chmod +x sendit-web-linux-x86_64
 
-# 2. Start the web UI
-./sendit-linux-x86_64 web
+# 2. Run it (no args needed)
+./sendit-web-linux-x86_64
 
-# 3. Open the URL, drag & drop a file → share the link
+# 3. Open the URL in your browser, drag & drop a file → share the link
 ```
 
-**Sender installs nothing?** Use the portable `.pyz` — just needs Python:
+**Or the portable `.pyz` — just needs Python:**
 
 ```bash
-python sendit.pyz web
+python sendit-web.pyz
 ```
 
 ---
@@ -44,21 +44,28 @@ python sendit.pyz web
 
 Download from [Releases](https://github.com/stoktiks/sendit/releases):
 
-| Platform | Binary |
-|----------|--------|
-| 🐧 Linux x86_64 | `sendit-linux-x86_64` |
-| 📱 Linux ARM64 (Android/Termux, RPi) | `sendit-linux-arm64` |
-| 🍎 macOS ARM64 | `sendit-darwin-arm64` |
-| 🪟 Windows x86_64 | `sendit-windows-x86_64.exe` |
-| 🐍 Any OS with Python 3.8+ | `sendit.pyz` (portable) |
-| 🤖 Android (native APK) | `sendit-android.apk` |
+| Platform | CLI Binary | Web Binary |
+|----------|------------|------------|
+| 🐧 Linux x86_64 | `sendit-cli-linux-x86_64` | `sendit-web-linux-x86_64` |
+| 📱 Linux ARM64 (Android/Termux, RPi) | `sendit-cli-linux-arm64` | `sendit-web-linux-arm64` |
+| 🍎 macOS ARM64 | `sendit-cli-darwin-arm64` | `sendit-web-darwin-arm64` |
+| 🪟 Windows x86_64 | `sendit-cli-windows-x86_64.exe` | `sendit-web-windows-x86_64.exe` |
+| 🐍 Any OS with Python 3.8+ | `sendit-cli.pyz` | `sendit-web.pyz` |
+| 🤖 Android (native APK) | — | `sendit-android.apk` |
 
 ```bash
-# Linux / macOS
-chmod +x sendit-linux-x86_64 && ./sendit-linux-x86_64 web
+# Web version — just run it, open the URL in a browser
+chmod +x sendit-web-linux-x86_64
+./sendit-web-linux-x86_64
 
-# Windows
-sendit-windows-x86_64.exe web
+# CLI version — use send/get commands
+chmod +x sendit-cli-linux-x86_64
+./sendit-cli-linux-x86_64 send ./file
+./sendit-cli-linux-x86_64 get http://192.168.1.5:8888/token
+
+# Portable (any OS with Python)
+python sendit-web.pyz        # auto-starts web UI
+python sendit-cli.pyz send ./file   # CLI only
 
 # APK on Android
 # Download sendit-android.apk → tap to install → open app → Start
