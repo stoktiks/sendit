@@ -38,29 +38,24 @@ jobs:
           esac
           ext=""
           [ "${{ matrix.label }}" = "windows" ] && ext=".exe"
-
-          # CLI version
           pyinstaller --onefile --name "sendit-cli-${{ matrix.label }}-$suffix$ext" run.py
-
-          # Web version (bundles qrcode)
           pyinstaller --onefile --hidden-import qrcode --name "sendit-web-${{ matrix.label }}-$suffix$ext" run_web.py
         shell: bash
-      - uses: softprops/action-gh-release@v1
-        with:
-          files: dist/sendit-*
-          fail_on_unmatched_files: true
+      - name: Upload to release
+        run: |
+          gh release create "${{ github.ref_name }}" dist/sendit-* --generate-notes --clobber 2>/dev/null || true
+          gh release upload "${{ github.ref_name }}" dist/sendit-* --clobber
+        env:
+          GH_TOKEN: ${{ github.token }}
 
   build-arm64:
     name: Build linux-arm64
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
-        with:
-          platforms: arm64
-      - name: Build ARM64 binaries (CLI + Web)
+      - name: Set up QEMU for ARM64
         run: |
+          docker run --rm --privileged tonistiigi/binfmt:latest --install arm64
           docker run --platform linux/arm64 \
             -v ${{ github.workspace }}:/workspace \
             -w /workspace \
@@ -77,10 +72,12 @@ jobs:
         with:
           name: sendit-web-linux-arm64
           path: dist/sendit-web-linux-arm64
-      - uses: softprops/action-gh-release@v1
-        with:
-          files: dist/sendit-*
-          fail_on_unmatched_files: true
+      - name: Upload to release
+        run: |
+          gh release create "${{ github.ref_name }}" dist/sendit-* --generate-notes --clobber 2>/dev/null || true
+          gh release upload "${{ github.ref_name }}" dist/sendit-* --clobber
+        env:
+          GH_TOKEN: ${{ github.token }}
 
   build-zipapp:
     name: Build portable .pyz (all platforms)
@@ -109,10 +106,12 @@ jobs:
             --compress
           mv /tmp/sendit-web.pyz "$GITHUB_WORKSPACE/sendit-web.pyz"
           rm -rf "$BUILD_DIR"
-      - uses: softprops/action-gh-release@v1
-        with:
-          files: "*.pyz"
-          fail_on_unmatched_files: true
+      - name: Upload to release
+        run: |
+          gh release create "${{ github.ref_name }}" *.pyz --generate-notes --clobber 2>/dev/null || true
+          gh release upload "${{ github.ref_name }}" *.pyz --clobber
+        env:
+          GH_TOKEN: ${{ github.token }}
 
   build-apk:
     name: Build Android APK
@@ -158,7 +157,10 @@ jobs:
             app/build/outputs/apk/release/app-release-unsigned.apk \
             sendit-android.apk
         working-directory: sendit-android
-      - uses: softprops/action-gh-release@v1
-        with:
-          files: sendit-android/sendit-android.apk
-          fail_on_unmatched_files: true
+      - name: Upload APK to release
+        run: |
+          gh release create "${{ github.ref_name }}" sendit-android.apk --generate-notes --clobber 2>/dev/null || true
+          gh release upload "${{ github.ref_name }}" sendit-android.apk --clobber
+        working-directory: sendit-android
+        env:
+          GH_TOKEN: ${{ github.token }}
