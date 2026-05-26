@@ -15,6 +15,7 @@ optional-dependencies = {qrcode = ["qrcode>=7.0"]}
 
 [project.scripts]
 sendit = "sendit.cli:main"
+sendit-web = "sendit.cli_web:main"
 
 [tool.setuptools.packages.find]
 include = ["sendit*"]

@@ -28,7 +28,7 @@ jobs:
           python-version: '3.11'
       - run: pip install pyinstaller
       - run: pip install -e .
-      - name: Build binary
+      - name: Build binaries (CLI + Web)
         run: |
           arch=$(uname -m)
           case "$arch" in
@@ -38,7 +38,12 @@ jobs:
           esac
           ext=""
           [ "${{ matrix.label }}" = "windows" ] && ext=".exe"
-          pyinstaller --onefile --name "sendit-${{ matrix.label }}-$suffix$ext" run.py
+
+          # CLI version
+          pyinstaller --onefile --name "sendit-cli-${{ matrix.label }}-$suffix$ext" run.py
+
+          # Web version
+          pyinstaller --onefile --name "sendit-web-${{ matrix.label }}-$suffix$ext" run_web.py
         shell: bash
       - uses: softprops/action-gh-release@v2
         with:
@@ -54,7 +59,7 @@ jobs:
         uses: docker/setup-qemu-action@v3
         with:
           platforms: arm64
-      - name: Build ARM64 binary
+      - name: Build ARM64 binaries (CLI + Web)
         run: |
           docker run --platform linux/arm64 \
             -v ${{ github.workspace }}:/workspace \
@@ -65,15 +70,16 @@ jobs:
               rm -rf /var/lib/apt/lists/* && \
               pip install pyinstaller && \
               pip install -e . && \
-              pyinstaller --onefile --name sendit-linux-arm64 run.py
+              pyinstaller --onefile --name sendit-cli-linux-arm64 run.py && \
+              pyinstaller --onefile --name sendit-web-linux-arm64 run_web.py
             "
       - uses: actions/upload-artifact@v4
         with:
-          name: sendit-linux-arm64
-          path: dist/sendit-linux-arm64
+          name: sendit-web-linux-arm64
+          path: dist/sendit-web-linux-arm64
       - uses: softprops/action-gh-release@v2
         with:
-          files: dist/sendit-linux-arm64
+          files: dist/sendit-*
           fail_on_unmatched_files: true
 
   build-zipapp:
@@ -84,16 +90,22 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Build zipapp
+      - name: Build CLI zipapp
         run: |
           pip install -e .
           python -m zipapp . \
-            --output sendit.pyz \
+            --output sendit-cli.pyz \
             --main sendit.cli:main \
+            --compress
+      - name: Build Web zipapp
+        run: |
+          python -m zipapp . \
+            --output sendit-web.pyz \
+            --main sendit.cli_web:main \
             --compress
       - uses: softprops/action-gh-release@v2
         with:
-          files: sendit.pyz
+          files: "*.pyz"
           fail_on_unmatched_files: true
 
   build-apk:
@@ -106,11 +118,15 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: 17
-      - name: Download ARM64 binary
+      - name: Download web ARM64 binary
         uses: actions/download-artifact@v4
         with:
-          name: sendit-linux-arm64
+          name: sendit-web-linux-arm64
           path: sendit-android/app/src/main/assets/
+      - name: Rename binary for APK
+        run: |
+          mv sendit-android/app/src/main/assets/sendit-web-linux-arm64 \
+             sendit-android/app/src/main/assets/sendit-linux-arm64
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v3
       - name: Generate Gradle wrapper (in temp dir to avoid project config)
@@ -131,7 +147,6 @@ jobs:
           jarsigner -verbose -sigalg SHA1withRSA -digestalg SHA1 \
             -keystore debug.keystore -storepass android \
             app/build/outputs/apk/release/app-release-unsigned.apk sendit
-          # Find zipalign (version varies per runner image)
           ZIPALIGN=$(ls "$ANDROID_HOME"/build-tools/*/zipalign 2>/dev/null | head -1)
           "$ZIPALIGN" -v -p 4 \
             app/build/outputs/apk/release/app-release-unsigned.apk \
