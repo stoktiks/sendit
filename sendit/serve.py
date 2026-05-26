@@ -9,6 +9,7 @@ import threading
 import http.server
 import secrets
 import sys
+import urllib.parse
 
 from ._common import find_free_port, get_local_ip, format_size, escape_html, header_safe_filename, icon_for_ext
 
@@ -290,11 +291,18 @@ def run_web_server(port=0, storage_dir=None):
             temp = None
             temp_path = None
             state = "header"
+            content_length = int(self.headers.get("Content-Length", 0))
+            bytes_read = 0
 
             while state != "done":
-                chunk = self.rfile.read(65536)
-                if chunk:
-                    buf.extend(chunk)
+                if bytes_read < content_length:
+                    want = min(65536, content_length - bytes_read)
+                    chunk = self.rfile.read(want)
+                    if chunk:
+                        buf.extend(chunk)
+                        bytes_read += len(chunk)
+                else:
+                    chunk = b""
 
                 if state == "header":
                     # Find \r\n\r\n — headers are always small, safe to buffer
@@ -576,7 +584,12 @@ function formatSize(n){{if(n===0)return'0 B';const units=['B','KB','MB','GB'];le
                             break
                         self.wfile.write(chunk)
             except Exception as e:
-                self._send_json(500, {"error": str(e)})
+                import sys, traceback
+                traceback.print_exc(file=sys.stderr)
+                try:
+                    self._send_json(500, {"error": str(e)})
+                except Exception:
+                    pass
 
         def do_GET(self):
             parsed_path = self.path.rstrip("/")
