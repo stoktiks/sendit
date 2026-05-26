@@ -26,7 +26,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: pip install pyinstaller
+      - run: pip install pyinstaller qrcode
       - run: pip install -e .
       - name: Build binaries (CLI + Web)
         run: |
@@ -42,8 +42,8 @@ jobs:
           # CLI version
           pyinstaller --onefile --name "sendit-cli-${{ matrix.label }}-$suffix$ext" run.py
 
-          # Web version
-          pyinstaller --onefile --name "sendit-web-${{ matrix.label }}-$suffix$ext" run_web.py
+          # Web version (bundles qrcode)
+          pyinstaller --onefile --hidden-import qrcode --name "sendit-web-${{ matrix.label }}-$suffix$ext" run_web.py
         shell: bash
       - uses: softprops/action-gh-release@v2
         with:
@@ -68,10 +68,10 @@ jobs:
             bash -c "
               apt-get update && apt-get install -y --no-install-recommends gcc libc6-dev && \
               rm -rf /var/lib/apt/lists/* && \
-              pip install pyinstaller && \
+              pip install pyinstaller qrcode && \
               pip install -e . && \
               pyinstaller --onefile --name sendit-cli-linux-arm64 run.py && \
-              pyinstaller --onefile --name sendit-web-linux-arm64 run_web.py
+              pyinstaller --onefile --hidden-import qrcode --name sendit-web-linux-arm64 run_web.py
             "
       - uses: actions/upload-artifact@v4
         with:
@@ -97,12 +97,14 @@ jobs:
             --output sendit-cli.pyz \
             --main sendit.cli:main \
             --compress
-      - name: Build Web zipapp
+      - name: Build Web zipapp (bundles qrcode)
         run: |
+          pip install qrcode -t ./_vendor/ --quiet
           python -m zipapp . \
             --output sendit-web.pyz \
             --main sendit.cli_web:main \
             --compress
+          rm -rf ./_vendor/
       - uses: softprops/action-gh-release@v2
         with:
           files: "*.pyz"
