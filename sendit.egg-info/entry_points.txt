@@ -1,3 +1,0 @@
-[console_scripts]
-sendit = sendit.cli:main
-sendit-web = sendit.cli_web:main
