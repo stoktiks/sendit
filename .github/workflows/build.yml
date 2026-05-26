@@ -99,12 +99,16 @@ jobs:
             --compress
       - name: Build Web zipapp (bundles qrcode)
         run: |
-          pip install qrcode -t ./_vendor/ --quiet
+          BUILD_DIR=$(mktemp -d)
+          cp -r sendit "$BUILD_DIR/sendit"
+          pip install qrcode -t "$BUILD_DIR" --quiet
+          cd "$BUILD_DIR"
           python -m zipapp . \
-            --output sendit-web.pyz \
+            --output /tmp/sendit-web.pyz \
             --main sendit.cli_web:main \
             --compress
-          rm -rf ./_vendor/
+          mv /tmp/sendit-web.pyz "$GITHUB_WORKSPACE/sendit-web.pyz"
+          rm -rf "$BUILD_DIR"
       - uses: softprops/action-gh-release@v2
         with:
           files: "*.pyz"

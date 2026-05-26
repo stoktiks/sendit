@@ -47,8 +47,9 @@ def escape_html(s):
 
 def header_safe_filename(name):
     """Escape a filename for safe use in Content-Disposition HTTP header.
-    Strips control chars and backslash-escapes quotes (prevents header injection)."""
-    name = "".join(c for c in name if c not in ("\r", "\n") and ord(c) >= 32)
+    Strips control chars and non-ASCII chars, then escapes backslashes and quotes.
+    Non-ASCII filenames are handled by the filename*=UTF-8'' fallback header."""
+    name = "".join(c for c in name if 32 <= ord(c) < 128)
     name = name.replace("\\", "\\\\")
     name = name.replace('"', '\\"')
     return name
